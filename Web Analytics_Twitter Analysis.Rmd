@@ -1,0 +1,304 @@
+---
+title: "Web_Analytics"
+author: "Group 4"
+date: "3/8/2020"
+output: word_document
+---
+
+Problem 1- We have selected Yes Bank for finding the current sentiments fo the people.
+Further getting the data from twitter API and importing it.
+
+#Connect to twitter with API
+```{r}
+library(twitteR)
+library(rtweet)
+library(dplyr)
+library(tidyr)
+library(tidytext)
+library(SnowballC)
+library(tm)
+library(ggplot2)
+library(RColorBrewer)
+library(wordcloud)
+library(topicmodels)
+library(data.table)
+library(stringi)
+library(syuzhet)
+library(dplyr)
+library(plyr)
+library(grid)
+library(gridExtra)
+
+consumer_key <- "5IjiF7IZgkq3kHQxpLOBP4wxS"
+consumer_secret<-"0UcaDU4A5BnenygXVNi09VNBw6bjp2pNVPH8fS5vWLkV8lvqNP"
+access_token<-"1231460696300367872-K7r6aI0g5g0noA3aLGgNokU9MbBVY3"
+access_token_secret<-"sYqJKlpxNGuuyXqXpS5EvNqHJnICtZX5Q8hkgcxAzVsnM"
+
+```
+
+
+#Read data
+```{r}
+tweets.df <- read.csv("yes_bank_2tweets.csv")
+str(tweets.df)
+summary(tweets.df)
+
+
+
+```
+
+Problem 2 - EDA
+
+# Remove retweets and replies
+
+```{r}
+yes_bank_2tweets_unique <- tweets.df[tweets.df$isRetweet==FALSE, ]
+yes_bank_2tweets_unique_nreplies <- subset(yes_bank_2tweets_unique, is.na(yes_bank_2tweets_unique$replyToSID)) 
+
+nrow(yes_bank_2tweets_unique)
+ncol(yes_bank_2tweets_unique)
+```
+
+
+#Exploring data for further analysis
+```{r}
+# Remove retweets
+yes_bank_2tweets_unique <- tweets.df[tweets.df$isRetweet==FALSE, ] 
+nrow(yes_bank_2tweets_unique)
+
+
+# Remove replies
+yes_bank_2tweets_unique <- subset(yes_bank_2tweets_unique, is.na(yes_bank_2tweets_unique$replyToSID)) 
+nrow(yes_bank_2tweets_unique)
+
+
+# Analyse engagement by looking at the variables: favoriteCount (i.e. the number of likes)
+# or retweetCount (i.e. the number of retweets). Simply arrange them in descending order (with a minus “-” before the variable) 
+# to find the one with the highest number of likes or retweets or ascending order (without the minus) to find the one with lowest 
+# number of engagements.
+
+# Msst favourite
+yes_bank_2tweets_unique <- yes_bank_2tweets_unique %>% arrange(-favoriteCount)
+yes_bank_2tweets_unique[1,5]
+
+
+# Highest retweets
+yes_bank_2tweets_unique <- yes_bank_2tweets_unique %>% arrange(-retweetCount)
+yes_bank_2tweets_unique[1,5]
+
+# Least favourite
+yes_bank_2tweets_unique <- yes_bank_2tweets_unique %>% arrange(favoriteCount)
+yes_bank_2tweets_unique[1,5]
+
+```
+
+
+Problem 3 - Data cleaning
+# Create document corpus with tweet text
+
+```{r}
+myCorpus<- Corpus(VectorSource(yes_bank_2tweets_unique$text)) 
+myCorpuscopy<-Corpus(VectorSource(yes_bank_2tweets_unique$text)) 
+myCorpus <- tm_map(myCorpus, content_transformer(stri_trans_tolower))
+writeLines(strwrap(myCorpus[[750]]$content,60))
+
+
+```
+
+
+#removing URLs
+
+```{r}
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)  
+myCorpus <- tm_map(myCorpus, content_transformer(removeURL))
+writeLines(strwrap(myCorpus[[750]]$content,60))
+
+```
+
+#Removing user names
+```{r}
+removeUsername <- function(x) gsub("@[^[:space:]]*", "", x)  
+myCorpus <- tm_map(myCorpus, content_transformer(removeUsername))
+writeLines(strwrap(myCorpus[[751]]$content,60))
+
+```
+
+
+#Removing stopwords
+```{r}
+myStopWords<- c((stopwords('english')),c("rt","and","the","yesbank","yes", "bank","whom", "into", "via","rs","will","can", "now", "hi","get","cr","sb","ag","pick","took","larg", "groups", "ufufaf","uf", "ufufuf", "sir","said","ub","th"))
+myCorpus<- tm_map(myCorpus,removeWords , myStopWords) 
+writeLines(strwrap(myCorpus[[755]]$content,60))
+```
+
+#Removing panctuation
+```{r}
+removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*", "", x)   
+myCorpus <- tm_map(myCorpus, content_transformer(removeNumPunct))
+writeLines(strwrap(myCorpus[[755]]$content,60))
+
+```
+
+
+#Removing single letter word
+```{r}
+removeSingle <- function(x) gsub(" . ", " ", x)   
+myCorpus <- tm_map(myCorpus, content_transformer(removeSingle))
+writeLines(strwrap(myCorpus[[758]]$content,60))
+
+```
+#Removing extra whitespaces
+```{r}
+myCorpus<- tm_map(myCorpus, stripWhitespace)
+writeLines(strwrap(myCorpus[[758]]$content,60))
+```
+
+#Creting document term matrix
+```{r}
+tdm<- TermDocumentMatrix(myCorpus, control= list(wordLengths= c(1, Inf)))
+tdm
+```
+
+
+#Problem 4 - Ananlysing text frequency
+
+```{r}
+(freq.terms <- findFreqTerms(tdm, lowfreq = 30))
+term.freq <- rowSums(as.matrix(tdm))
+term.freq <- subset(term.freq, term.freq > 30)
+df <- data.frame(term = names(term.freq), freq= term.freq)
+p1=ggplot(df, aes(reorder(term, freq),freq)) + theme_bw() + geom_bar(stat = "identity")  + coord_flip() +labs(list(title="@10", x="Terms", y="Term Counts")) + theme(axis.text.y = element_text(size=7))
+p1
+```
+
+
+```{r}
+(freq.terms <- findFreqTerms(tdm, lowfreq = 15))
+term.freq <- rowSums(as.matrix(tdm))
+term.freq <- subset(term.freq, term.freq > 15)
+df1 <- data.frame(term = names(term.freq), freq= term.freq)
+
+p2=ggplot(df1, aes(reorder(term, freq),freq)) + theme_bw() + geom_bar(stat = "identity")  + coord_flip() +labs(list(title="@10", x="Terms", y="Term Counts")) + theme(axis.text.y = element_text(size=7))
+p2
+```
+###Considering low frequency as 30.
+
+#Problem 5 - Creating word cloud
+
+```{r}
+#Overall word cloud
+word.freq <-sort(rowSums(as.matrix(tdm)), decreasing= F)
+pal<- brewer.pal(8, "Dark2")
+wordcloud(words = names(word.freq), freq = word.freq, min.freq = 2, random.order = F, colors = pal, max.words = 150)
+
+dtm <- as.DocumentTermMatrix(tdm)
+
+#Calculating Sentiments for word cloud
+freq_up <- colSums(as.matrix(dtm))
+##install.packages('RSentiment')
+library('RSentiment')
+sentiments_up = calculate_sentiment(names(freq_up))
+sentiments_up = cbind(sentiments_up, as.data.frame(freq_up))
+sent_pos_up = sentiments_up[sentiments_up$sentiment == 'Positive',]
+sent_neg_up = sentiments_up[sentiments_up$sentiment == 'Negative',]
+
+cat("We have relatively lower negative Sentiments: ",sum(sent_neg_up$freq_up)," than positive: ",sum(sent_pos_up$freq_up))
+
+#Create Positive WordCloud
+
+layout(matrix(c(1, 2), nrow=2), heights=c(1, 4))
+par(mar=rep(0, 4))
+plot.new()
+set.seed(100)
+wordcloud(sent_pos_up$text,sent_pos_up$freq,min.freq=10,colors=brewer.pal(6,"Dark2"))
+
+
+#Create Negative WordCloud
+
+plot.new()
+set.seed(100)
+wordcloud(sent_neg_up$text,sent_neg_up$freq, min.freq=10,colors=brewer.pal(6,"Dark2"))
+
+```
+
+
+#Problem 6 - Obtaining sentiment scores
+
+```{r}
+
+yes_bank_2tweets_unique$text<-as.character(yes_bank_2tweets_unique$text)
+mysentiment<- get_nrc_sentiment(yes_bank_2tweets_unique$text)
+
+# Get the sentiment score for each emotion
+mysentiment.positive =sum(mysentiment$positive)
+mysentiment.anger =sum(mysentiment$anger)
+mysentiment.anticipation =sum(mysentiment$anticipation)
+mysentiment.disgust =sum(mysentiment$disgust)
+mysentiment.fear =sum(mysentiment$fear)
+mysentiment.joy =sum(mysentiment$joy)
+mysentiment.sadness =sum(mysentiment$sadness)
+mysentiment.surprise =sum(mysentiment$surprise)
+mysentiment.trust =sum(mysentiment$trust)
+mysentiment.negative =sum(mysentiment$negative)
+
+# Create the bar chart
+yAxis <- c(mysentiment.positive,
+           + mysentiment.anger,
+           + mysentiment.anticipation,
+           + mysentiment.disgust,
+           + mysentiment.fear,
+           + mysentiment.joy,
+           + mysentiment.sadness,
+           + mysentiment.surprise,
+           + mysentiment.trust,
+           + mysentiment.negative)
+
+xAxis <- c("Positive","Anger","Anticipation","Disgust","Fear","Joy","Sadness","Surprise","Trust","Negative")
+colors <- c("green","red","blue","orange","red","green","orange","blue","green","red")
+yRange <- range(0,yAxis)
+barplot(yAxis, names.arg = xAxis, 
+        xlab = "Emotional valence", ylab = "Score", main = "Twitter sentiment", 
+        sub = "Yes Bank", col = colors, border = "black", xpd = F, ylim = yRange,
+        axisnames = T, cex.axis = 0.8, cex.sub = 0.8, col.sub = "blue")
+
+```
+
+#Considering the graph above we can conclude that, due to recent turbulance there are some negative sentiments for Yes Bank but over all people seems to have trust and positive attitude towards the bank.
+
+Problem 7 - Correlation
+#Correlation with top key words and assiciation
+
+```{r}
+list1<- findAssocs(tdm, "yesbankscam", 0.2)
+corrdf1 <- t(data.frame(t(sapply(list1,c))))
+corrdf1
+
+barplot(t(as.matrix(corrdf1)), beside=TRUE,xlab = "Words",ylab = "Corr",col = "blue",main = "yesbankscam",border = "black")
+
+
+list2<- findAssocs(tdm, "crisis", 0.2)
+corrdf2 <- t(data.frame(t(sapply(list2,c))))
+corrdf2
+barplot(t(as.matrix(corrdf2)), beside=TRUE,xlab = "Words",ylab = "Corr",col = "blue",main = "crisis",border = "black")
+
+
+list3<- findAssocs(tdm, "sbi", 0.2)
+corrdf3 <- t(data.frame(t(sapply(list3,c))))
+corrdf3
+barplot(t(as.matrix(corrdf3)), beside=TRUE,xlab = "Words",ylab = "Corr",col = "blue",main = "sbi",border = "black")
+
+
+list4<- findAssocs(tdm, "rbi", 0.2)
+corrdf4 <- t(data.frame(t(sapply(list4,c))))
+corrdf4
+barplot(t(as.matrix(corrdf4)), beside=TRUE,xlab = "Words",ylab = "Corr",col = "blue",main = "rbi",border = "black")
+
+list5<- findAssocs(tdm, "cash", 0.2)
+corrdf5 <- t(data.frame(t(sapply(list5,c))))
+corrdf5
+
+
+barplot(t(as.matrix(corrdf5)), beside=TRUE,xlab = "Words",ylab = "Corr",col = "blue",main = "cash",border = "black")
+
+```
+

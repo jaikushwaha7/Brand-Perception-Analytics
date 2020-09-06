@@ -1,0 +1,69 @@
+---
+title: "WSMA Grp Assignment"
+author: "Jai Kushwaha"
+date: "07/03/2020"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, include=FALSE}
+#Setup the environment
+
+rm(list=ls())
+library(SnowballC)
+library(tm)
+library(ggplot2)
+library(RColorBrewer)
+library(wordcloud)
+library(topicmodels)
+library(data.table)
+library(stringi)
+library(syuzhet)
+library(dplyr)
+library(plyr)
+library(grid)
+library(gridExtra)
+library(rtweet)
+library(twitteR)
+
+```
+
+```{r}
+api_key = 'OUwGpLqhQFEPG6MrAoNcbWqMi'
+api_secret_key = 'LjDhwhcdAgeHiZcGsBMsKc7mLwTsIZEt8FHvjl6eXFD5YiaTE5'
+access_token = '795881726-N2cWgPyM8Ppux1NceZK7BmgrBeWhvPssfXcO1N8y'
+access_token_secret = 'yoGkcdjraIqsBCd4qOKaTsWrYlsGUJ2icKdkPXmDS8O7w'
+
+setup_twitter_oauth(api_key, api_secret_key, access_token, access_token_secret)
+```
+
+```{r}
+tweet_az = searchTwitter("amazon", n= 2000)
+```
+
+```{r}
+head(tweet_az)
+```
+Obs: 
+1. Tweets across the world about amazon and
+2. Also in different languages
+
+```{r}
+tweet_az_eng = searchTwitter("amazon", n= 2000, lang = "en")
+```
+
+```{r}
+head(tweet_az_eng)
+```
+
+# Cleaning Tweets
+```{r}
+
+```
+
+
